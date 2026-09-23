@@ -16,7 +16,9 @@ def test_manual_sharepoint_selection_uses_shared_sync_and_history(monkeypatch):
     history = []
     monkeypatch.setattr(
         main, "run_sharepoint_ingestion",
-        lambda rule: calls.append(rule) or {"status": "success", "processed": 2, "rule": rule},
+        lambda rule, outputs=None: calls.append((rule, outputs)) or {
+            "status": "success", "processed": 2, "rule": rule,
+        },
     )
     monkeypatch.setattr(main, "add_history_entry", lambda **kwargs: history.append(kwargs))
 
@@ -25,7 +27,7 @@ def test_manual_sharepoint_selection_uses_shared_sync_and_history(monkeypatch):
         mapper="Document Mapper", outputs="Kafka",
     ))
 
-    assert calls == ["Knowledge Base Rules"]
+    assert calls == [("Knowledge Base Rules", "Kafka")]
     assert result["processed"] == 2
     assert history == [{
         "connector": "SharePoint KB", "mapper": "Document Mapper",
@@ -47,6 +49,39 @@ def test_non_sharepoint_connector_keeps_local_fallback(monkeypatch, tmp_path):
     result = run_endpoint(main.IngestionRequest(connector="Local Files"))
 
     assert result["processed"] == 0
+
+
+def test_local_ingestion_publishes_rule_processed_documents_to_vector_database(monkeypatch, tmp_path):
+    published = []
+    monkeypatch.setattr(main, "INPUT_FOLDER", tmp_path / "input")
+    monkeypatch.setattr(main, "OUTPUT_FOLDER", tmp_path / "output")
+    monkeypatch.setattr(
+        main,
+        "read_local_text_files",
+        lambda folder: [{"file_name": "guide.txt", "content": "source"}],
+    )
+    monkeypatch.setattr(
+        main,
+        "map_local_files_to_canonical",
+        lambda records: [{"file_name": "guide.txt", "content": "canonical"}],
+    )
+    monkeypatch.setattr(
+        main,
+        "apply_selected_rules",
+        lambda document, rule: {**document, "rule_applied": rule},
+    )
+    monkeypatch.setattr(main, "publish_qdrant_documents", lambda documents: published.extend(documents))
+    monkeypatch.setattr(main, "add_history_entry", lambda **kwargs: None)
+
+    result = run_endpoint(main.IngestionRequest(
+        connector="Local Files", rule="Knowledge Base Rules", outputs="Vector Database",
+    ))
+
+    assert result["processed"] == 1
+    assert published == [{
+        "file_name": "guide.txt", "content": "canonical",
+        "rule_applied": "Knowledge Base Rules",
+    }]
 
 
 def configure_sync_mocks(monkeypatch, delta_result, mappings=None, old_delta="old-delta"):

@@ -46,6 +46,23 @@ Set the broker and topic before starting the backend:
 ```bash
 export KAFKA_BOOTSTRAP_SERVERS=localhost:9092
 export KAFKA_TOPIC=fortude.ingestion
+```
+
+## Starting Qdrant vector output
+
+Start a Qdrant instance, then configure the backend before starting Uvicorn:
+
+```bash
+export QDRANT_URL=http://localhost:6333
+export QDRANT_COLLECTION=fortude_documents
+# Optional for Qdrant Cloud:
+export QDRANT_API_KEY=your-api-key
+```
+
+The backend uses the `BAAI/bge-small-en-v1.5` FastEmbed model by default. It
+downloads the model on first use. Override it with `QDRANT_EMBEDDING_MODEL` if
+required. Select `Vector Database` as the ingestion output to upsert each
+canonical document into the configured collection.
 
 For Jira ingestion, also configure:
 
@@ -58,17 +75,16 @@ export JIRA_API_TOKEN=your-api-token
 `JIRA_EMAIL` must be the exact email address of the Atlassian account that
 created `JIRA_API_TOKEN`. Set these variables in the same terminal that starts
 Uvicorn, then restart the backend.
-```
 
-Select Kafka in the ingestion request with `output: "Kafka"`:
+Select Kafka in the ingestion request with `outputs: "Kafka"`:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/api/ingest/local-folder \
     -H 'Content-Type: application/json' \
-    -d '{"connector":"SharePoint KB","rule":"Knowledge Base Rules","output":"Kafka"}'
+    -d '{"connector":"SharePoint KB","rule":"Knowledge Base Rules","outputs":"Kafka"}'
 ```
 
 Each processed canonical document is published as a JSON message to the
-configured topic. Requests that omit `output` continue using local JSON output.
+configured topic. Requests that omit `outputs` continue using local JSON output.
 
 *you must do this every time you start a new terminal session to work on the project. Use 'deactivate' once you have finished working on the project.

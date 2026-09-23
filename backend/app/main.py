@@ -44,6 +44,8 @@ sys.path.append('.')
 from connectors.Jira_API_connector import get_my_issues,get_jira_fields
 from mappers.jira_mapper import map_jira_response_to_canonical
 from mappers.jira_transformer import transform_canonical_tickets_for_l3
+from outputs.kafka_output import publish_documents as publish_kafka_documents
+from outputs.qdrant_output import publish_documents as publish_qdrant_documents
 import sqlite3
 
 BASE_FOLDER = Path(__file__).resolve().parents[2]
@@ -110,6 +112,19 @@ class ConfigItemCreate(BaseModel):
     name: str
 
 
+def publish_selected_outputs(documents, selected_outputs: str | None):
+    """Send documents to each selected output target."""
+    output_names = {
+        output.strip().lower()
+        for output in (selected_outputs or "").split(",")
+        if output.strip()
+    }
+    if "kafka" in output_names:
+        publish_kafka_documents(documents)
+    if "vector database" in output_names:
+        publish_qdrant_documents(documents)
+
+
 # ---------------------------------------------------------------------------
 # Existing endpoints
 # ---------------------------------------------------------------------------
@@ -124,7 +139,7 @@ def read_item(item_id: int, q: str | None = None):
     return {"item_id": item_id, "q": q}
 
 
-def run_sharepoint_ingestion(rule):
+def run_sharepoint_ingestion(rule, selected_outputs=None):
     """Synchronize SharePoint changes for both manual and automatic triggers."""
     with ingestion_lock:
         OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -141,6 +156,7 @@ def run_sharepoint_ingestion(rule):
         mappings = get_sharepoint_item_mappings(drive_id)
         mapping_upserts = {}
         mapping_deletes = set()
+        processed_documents = []
         processed = 0
         seen_item_ids = set()
 
@@ -157,6 +173,7 @@ def run_sharepoint_ingestion(rule):
 
             document = map_local_files_to_canonical([change["record"]])[0]
             document = apply_selected_rules(document, rule)
+            processed_documents.append(document)
             output_name = Path(document["file_name"]).with_suffix(".json").name
             if previous_output_name and previous_output_name != output_name:
                 (OUTPUT_FOLDER / previous_output_name).unlink(missing_ok=True)
@@ -180,6 +197,7 @@ def run_sharepoint_ingestion(rule):
             mapping_upserts,
             mapping_deletes,
         )
+        publish_selected_outputs(processed_documents, selected_outputs)
 
         return {
             "status": "success",
@@ -198,7 +216,7 @@ async def poll_sharepoint_ingestion():
         except Exception:
             logger.exception("Automatic SharePoint ingestion failed")
 
-async def poll_jira(rule: str):
+async def poll_jira(rule: str, selected_outputs=None):
     """Polls Jira every 5 minutes, transforms data, and saves to JSON."""
     while True:
         print(f"Polling Jira... (using rule: {rule})")
@@ -215,6 +233,8 @@ async def poll_jira(rule: str):
                 final_tickets = transform_canonical_tickets_for_l3(canonical_tickets)
             else:
                 final_tickets = canonical_tickets
+
+            publish_selected_outputs(final_tickets, selected_outputs)
                 
             # 4. Save output to jira_issues.json
             OUTPUT_FOLDER.mkdir(parents=True, exist_ok=True)
@@ -260,7 +280,11 @@ async def ingest_local_folder(request: IngestionRequest, background_tasks: Backg
 
     if "jira" in connector_name:
         # Start a background polling task for Jira
-        background_tasks.add_task(poll_jira, request.rule or "Default Rule")
+        background_tasks.add_task(
+            poll_jira,
+            request.rule or "Default Rule",
+            request.outputs,
+        )
         add_history_entry(
             connector=request.connector,
             mapper=request.mapper or "",
@@ -281,6 +305,7 @@ async def ingest_local_folder(request: IngestionRequest, background_tasks: Backg
         result = await asyncio.to_thread(
             run_sharepoint_ingestion,
             request.rule or "Default Rule",
+            request.outputs,
         )
         add_history_entry(
             connector=request.connector,
@@ -298,15 +323,19 @@ async def ingest_local_folder(request: IngestionRequest, background_tasks: Backg
 
     raw_files = read_local_text_files(INPUT_FOLDER)
     canonical_documents = map_local_files_to_canonical(raw_files)
+    processed_documents = []
 
     for document in canonical_documents:
         document = apply_selected_rules(document, request.rule or "Default Rule")
+        processed_documents.append(document)
         output_name = Path(document["file_name"]).with_suffix(".json").name
         output_path = OUTPUT_FOLDER / output_name
         output_path.write_text(
             json.dumps(document, indent=2, ensure_ascii=False),
             encoding="utf-8",
         )
+
+    publish_selected_outputs(processed_documents, request.outputs)
 
     add_history_entry(
         connector=request.connector,
@@ -319,7 +348,7 @@ async def ingest_local_folder(request: IngestionRequest, background_tasks: Backg
 
     return {
         "status": "success",
-        "processed": len(canonical_documents),
+        "processed": len(processed_documents),
         "rule": request.rule or "Default Rule",
     }
 

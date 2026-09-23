@@ -2,6 +2,7 @@ fastapi[standard]
 pydantic
 python-dotenv
 kafka-python
+qdrant-client[fastembed]
 pytest
 requests
 python-docx
