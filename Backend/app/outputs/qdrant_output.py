@@ -6,7 +6,7 @@ import uuid
 from collections.abc import Iterable
 from typing import Any
 
-import output_config
+import Backend.app.output_config as output_config
 
 
 def _document_text(document: dict[str, Any]) -> str:
