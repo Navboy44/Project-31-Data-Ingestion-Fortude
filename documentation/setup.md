@@ -37,7 +37,7 @@ Please ensure you have the following:
 4. Test that your virtual environment is active and working correctly by typing 'Get-Command python'
 5. Verify that your version of python is **Python 3.10.x** by typing 'python --version'
 6. Upgrade pip by typing ‘python -m pip install --upgrade pip’ and press enter
-7. Type 'pip install -r requirements.txt'
+7. From the repository root, type `pip install -r Backend/app/requirements.txt`
 
 ## Starting Kafka output
 
@@ -50,19 +50,47 @@ export KAFKA_TOPIC=fortude.ingestion
 
 ## Starting Qdrant vector output
 
-Start a Qdrant instance, then configure the backend before starting Uvicorn:
+For Qdrant Cloud, copy the cluster URL and API key from the cluster's API
+access details. For a local Qdrant instance, use `http://localhost:6333`.
+Create your private config by copying the example:
 
-```bash
-export QDRANT_URL=http://localhost:6333
-export QDRANT_COLLECTION=fortude_documents
-# Optional for Qdrant Cloud:
-export QDRANT_API_KEY=your-api-key
+```powershell
+Copy-Item Backend\app\output_config.example.py Backend\app\output_config.py
 ```
 
-The backend uses the `BAAI/bge-small-en-v1.5` FastEmbed model by default. It
-downloads the model on first use. Override it with `QDRANT_EMBEDDING_MODEL` if
-required. Select `Vector Database` as the ingestion output to upsert each
-canonical document into the configured collection.
+Edit `Backend/app/output_config.py` with your settings:
+
+```python
+QDRANT_URL = "https://<your-cluster-endpoint>:6333"
+QDRANT_API_KEY = "<your-qdrant-api-key>"
+QDRANT_COLLECTION = "fortude_documents"
+QDRANT_EMBEDDING_MODEL = "BAAI/bge-small-en-v1.5"
+```
+
+For a local instance without authentication, keep the default URL and leave
+`QDRANT_API_KEY` as `None`. `output_config.py` is ignored by Git so credentials
+stay local; do not share the API key. The default embedding model downloads on
+first use. The `qdrant-client` and FastEmbed dependencies are included in
+`Backend/app/requirements.txt`.
+
+Start the backend from the repository root:
+
+```bash
+uvicorn backend.app.main:app --reload --port 8000
+```
+
+Select **Vector Database** in the ingestion outputs. For example, this request
+ingests local input files and upserts them to the configured collection:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/ingest/local-folder \
+    -H 'Content-Type: application/json' \
+    -d '{"connector":"Local Files","rule":"Default Rule","outputs":"Vector Database"}'
+```
+
+Each processed canonical document is embedded and upserted into the collection.
+Each point includes searchable `text` and the original canonical document in
+its payload.
 
 For Jira ingestion, also configure:
 

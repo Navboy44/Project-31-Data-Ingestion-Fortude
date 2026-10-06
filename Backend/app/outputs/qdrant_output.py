@@ -2,13 +2,11 @@
 
 import hashlib
 import json
-import os
 import uuid
 from collections.abc import Iterable
 from typing import Any
 
-
-DEFAULT_MODEL = "BAAI/bge-small-en-v1.5"
+import output_config
 
 
 def _document_text(document: dict[str, Any]) -> str:
@@ -42,15 +40,15 @@ def publish_documents(documents: Iterable[dict[str, Any]]) -> str:
         ) from error
 
     documents = list(documents)
+    collection = output_config.QDRANT_COLLECTION
     if not documents:
-        return os.getenv("QDRANT_COLLECTION", "fortude_documents")
+        return collection
 
-    url = os.getenv("QDRANT_URL", "http://localhost:6333")
-    api_key = os.getenv("QDRANT_API_KEY") or None
-    collection = os.getenv("QDRANT_COLLECTION", "fortude_documents")
-    model_name = os.getenv("QDRANT_EMBEDDING_MODEL", DEFAULT_MODEL)
-    client = QdrantClient(url=url, api_key=api_key)
-    embedder = TextEmbedding(model_name=model_name)
+    client = QdrantClient(
+        url=output_config.QDRANT_URL,
+        api_key=output_config.QDRANT_API_KEY,
+    )
+    embedder = TextEmbedding(model_name=output_config.QDRANT_EMBEDDING_MODEL)
 
     texts = [_document_text(document) for document in documents]
     vectors = list(embedder.embed(texts))

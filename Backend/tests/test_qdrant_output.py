@@ -23,8 +23,11 @@ class FakeClient:
 
 
 class FakeEmbedding:
+    last_model_name = None
+
     def __init__(self, model_name):
         self.model_name = model_name
+        type(self).last_model_name = model_name
 
     def embed(self, texts):
         return [[float(index), 1.0] for index, _ in enumerate(texts)]
@@ -45,20 +48,36 @@ class FakeModels:
 
 class QdrantOutputTests(unittest.TestCase):
     def test_embeds_and_upserts_documents(self):
-        client = FakeClient(url="http://qdrant:6333", api_key=None)
-        fake_qdrant = types.SimpleNamespace(QdrantClient=lambda **kwargs: client, models=FakeModels)
+        clients = []
+
+        def create_client(**kwargs):
+            client = FakeClient(**kwargs)
+            clients.append(client)
+            return client
+
+        fake_qdrant = types.SimpleNamespace(QdrantClient=create_client, models=FakeModels)
         fake_fastembed = types.SimpleNamespace(TextEmbedding=FakeEmbedding)
 
-        with patch.dict(
+        with patch.multiple(
+            qdrant_output.output_config,
+            QDRANT_URL="http://qdrant:6333",
+            QDRANT_API_KEY="test-api-key",
+            QDRANT_COLLECTION="test_documents",
+            QDRANT_EMBEDDING_MODEL="test-model",
+        ), patch.dict(
             sys.modules,
             {"qdrant_client": fake_qdrant, "fastembed": fake_fastembed},
-        ), patch.dict("os.environ", {"QDRANT_URL": "http://qdrant:6333"}, clear=False):
+        ):
             collection = qdrant_output.publish_documents(
                 [{"document_id": "one", "content": "hello"}]
             )
 
-        self.assertEqual(collection, "fortude_documents")
+        client = clients[0]
+        self.assertEqual(collection, "test_documents")
         self.assertEqual(client.kwargs["url"], "http://qdrant:6333")
+        self.assertEqual(client.kwargs["api_key"], "test-api-key")
+        self.assertEqual(client.upserted["collection_name"], "test_documents")
+        self.assertEqual(FakeEmbedding.last_model_name, "test-model")
         self.assertEqual(client.created["vectors_config"].kwargs["size"], 2)
         self.assertEqual(len(client.upserted["points"]), 1)
         self.assertEqual(client.upserted["points"][0].payload["text"], "hello")
