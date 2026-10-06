@@ -2,7 +2,7 @@ import unittest
 import tempfile
 from pathlib import Path
 
-from backend.app import auth
+from app import auth
 
 
 class AuthTests(unittest.TestCase):

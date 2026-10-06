@@ -1,14 +1,14 @@
 import asyncio
 import json
 
-from fastapi import BackgroundTasks
+from fastapi import BackgroundTasks, Request
 
-from backend.app import main
-from backend.app.connectors import connectors_db
+from app import main
+from app.connectors import config_db
 
 
 def run_endpoint(request):
-    return asyncio.run(main.ingest_local_folder(request, BackgroundTasks()))
+    return asyncio.run(main.ingest_local_folder(request, BackgroundTasks(), Request({"type": "http", "app": main.app})))
 
 
 def test_manual_sharepoint_selection_uses_shared_sync_and_history(monkeypatch):
@@ -23,14 +23,14 @@ def test_manual_sharepoint_selection_uses_shared_sync_and_history(monkeypatch):
     monkeypatch.setattr(main, "add_history_entry", lambda **kwargs: history.append(kwargs))
 
     result = run_endpoint(main.IngestionRequest(
-        connector="SharePoint KB", rule="Knowledge Base Rules",
+        connector="SharePoint", rule="Knowledge Base Rules",
         mapper="Document Mapper", outputs="Kafka",
     ))
 
     assert calls == [("Knowledge Base Rules", "Kafka")]
     assert result["processed"] == 2
     assert history == [{
-        "connector": "SharePoint KB", "mapper": "Document Mapper",
+        "connector": "SharePoint", "mapper": "Document Mapper",
         "rules": "Knowledge Base Rules", "outputs": "Kafka",
         "status": "completed", "processed": 2,
     }]
@@ -206,21 +206,21 @@ def test_invalid_delta_cursor_is_cleared_and_fresh_sync_runs(monkeypatch, tmp_pa
 
 
 def test_sharepoint_tables_extend_existing_config_and_history_db(monkeypatch, tmp_path):
-    monkeypatch.setattr(connectors_db, "DB_PATH", tmp_path / "config.db")
-    connectors_db.init_config_db()
+    monkeypatch.setattr(config_db, "DB_PATH", tmp_path / "config.db")
+    config_db.init_config_db()
 
-    assert any(item["name"] == "SharePoint KB" for item in connectors_db.list_connectors())
-    entry = connectors_db.add_history_entry(
-        connector="SharePoint KB", mapper="Document Mapper", rules="Default Rule",
+    assert any(item["name"] == "SharePoint" for item in config_db.list_connectors())
+    entry = config_db.add_history_entry(
+        connector="SharePoint", mapper="Document Mapper", rules="Default Rule",
         outputs="Kafka", processed=1,
     )
-    connectors_db.save_sharepoint_sync_state(
+    config_db.save_sharepoint_sync_state(
         "drive-id", "delta-link", {"item-id": "guide.json"}, set()
     )
 
     assert entry["processed"] == 1
-    assert connectors_db.get_sharepoint_delta_link("drive-id") == "delta-link"
-    assert connectors_db.get_sharepoint_item_mappings("drive-id") == {"item-id": "guide.json"}
+    assert config_db.get_sharepoint_delta_link("drive-id") == "delta-link"
+    assert config_db.get_sharepoint_item_mappings("drive-id") == {"item-id": "guide.json"}
 
 
 def test_polling_waits_calls_shared_sync_and_retries(monkeypatch):

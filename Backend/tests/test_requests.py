@@ -1,5 +1,5 @@
 import requests
-from Backend.app.connector_config import JIRA_BASE_URL
+from app.connector_config import JIRA_BASE_URL
 
 print("URL is:", repr(JIRA_BASE_URL))
 try:

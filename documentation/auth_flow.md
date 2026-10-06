@@ -56,7 +56,7 @@ Developer testing (local)
 Run the backend with Uvicorn:
 
 ```bash
-uvicorn backend.app.main:app --reload --port 8000
+python -m uvicorn app.main:app --app-dir backend --reload --port 8000
 ```
 
 Use `curl` to test a full MFA login flow for a user who is already enrolled:
@@ -72,12 +72,8 @@ curl -s -X POST http://127.0.0.1:8000/api/auth/mfa/login -H 'Content-Type: appli
 Notes & caveats
 ----------------
 - This is a demo-level implementation: tokens are opaque random strings
-  stored in SQLite. In production you should use signed JWTs or a secure
-  session store and hardened key management.
+  stored in SQLite.
 - TOTP uses HMAC-SHA1 to remain compatible with common authenticators.
 - The code intentionally separates `mfa_enabled` (user chooses to enable)
   from secret generation. When a new secret is set it is not active until
   the user verifies the OTP.
-
-If you want me to add sample Postman requests, or integrate with a real
-Okta/MiFA provider for push notifications, tell me and I will add it.

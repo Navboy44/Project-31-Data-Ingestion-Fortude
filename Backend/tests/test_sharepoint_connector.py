@@ -1,4 +1,4 @@
-from backend.app.connectors.sharepoint_connector import read_sharepoint_delta
+from app.connectors.sharepoint_connector import read_sharepoint_delta
 
 
 class FakeResponse:

@@ -5,3 +5,22 @@
 body {
   margin: 0;
 }
+
+/* Shared rounded actions for configuration items and saved pipelines. */
+@layer components {
+  .config-button {
+    @apply inline-flex items-center justify-center rounded-lg border border-transparent px-3 py-1.5 text-sm font-semibold cursor-pointer transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+  .config-button-primary {
+    @apply bg-[color:var(--blue)] text-white hover:enabled:bg-blue-700;
+  }
+  .config-button-create {
+    @apply bg-[color:var(--orange)] text-white hover:enabled:bg-orange-700;
+  }
+  .config-button-danger {
+    @apply border-red-200 bg-red-50 text-red-700 hover:enabled:bg-red-100;
+  }
+  .config-button-secondary {
+    @apply border-[color:var(--border)] bg-[color:var(--bg)] text-[color:var(--text)] hover:enabled:bg-[color:var(--borderSoft)];
+  }
+}

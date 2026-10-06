@@ -3,11 +3,22 @@ import { Menu, Bell, Settings, Moon, Sun } from "lucide-react";
 import { COLORS } from "../theme";
 
 // The top header bar provides the app title actions and the menu button for the sidebar.
-export default function Header({ notificationCount = 3, onToggleSidebar, onOpenSettings = () => {}, themeMode = "light", onToggleTheme = () => {}, jiraPolling = false }) {
+export default function Header({
+  notificationCount = 3,
+  onToggleSidebar,
+  onOpenSettings = () => {},
+  themeMode = "light",
+  onToggleTheme = () => {},
+  jiraPolling = false,
+}) {
   return (
     <div
-      className="flex items-center justify-between px-8"
-      style={{ height: 64, background: COLORS.header, borderBottom: `1px solid ${COLORS.border}` }}
+      className="flex shrink-0 items-center justify-between px-4 md:px-6"
+      style={{
+        height: 56,
+        background: COLORS.header,
+        borderBottom: `1px solid ${COLORS.border}`,
+      }}
     >
       <button
         type="button"
@@ -20,8 +31,14 @@ export default function Header({ notificationCount = 3, onToggleSidebar, onOpenS
 
       <div className="flex items-center gap-4">
         {jiraPolling && (
-          <div className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold" style={{ background: "#dcfce7", color: "#16a34a" }}>
-            <span className="inline-block w-2 h-2 rounded-full animate-pulse" style={{ background: "#16a34a" }} />
+          <div
+            className="flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-semibold"
+            style={{ background: "#dcfce7", color: "#16a34a" }}
+          >
+            <span
+              className="inline-block w-2 h-2 rounded-full animate-pulse"
+              style={{ background: "#16a34a" }}
+            />
             Jira polling
           </div>
         )}
@@ -42,13 +59,26 @@ export default function Header({ notificationCount = 3, onToggleSidebar, onOpenS
           {notificationCount > 0 && (
             <span
               className="absolute flex items-center justify-center text-white rounded-full"
-              style={{ top: -6, right: -7, width: 16, height: 16, fontSize: 10, background: COLORS.blue, fontWeight: 600 }}
+              style={{
+                top: -6,
+                right: -7,
+                width: 16,
+                height: 16,
+                fontSize: 10,
+                background: COLORS.blue,
+                fontWeight: 600,
+              }}
             >
               {notificationCount}
             </span>
           )}
         </div>
-        <Settings size={19} style={{ color: COLORS.textMuted }} className="cursor-pointer" onClick={onOpenSettings} />
+        <Settings
+          size={19}
+          style={{ color: COLORS.textMuted }}
+          className="cursor-pointer"
+          onClick={onOpenSettings}
+        />
       </div>
     </div>
   );

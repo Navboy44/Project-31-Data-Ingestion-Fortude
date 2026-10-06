@@ -23,11 +23,11 @@ export default function Sidebar({ page, goTo, user = null, onSignOut = () => {} 
 
   return (
     <div
-      className="flex flex-col justify-between flex-shrink-0"
-      style={{ width: 220, background: COLORS.sidebar, borderRight: `1px solid ${COLORS.border}`, minHeight: "100vh" }}
+      className="flex h-full overflow-y-auto flex-col justify-between flex-shrink-0"
+      style={{ width: 220, background: COLORS.sidebar, borderRight: `1px solid ${COLORS.border}` }}
     >
       <div>
-        <div className="flex items-center justify-between gap-2.5 px-6 py-6">
+        <div className="flex items-center justify-between gap-2.5 px-5 py-4">
           <div className="flex items-center gap-2.5">
             <div
               className="flex items-center justify-center rounded-md font-bold text-white flex-shrink-0"

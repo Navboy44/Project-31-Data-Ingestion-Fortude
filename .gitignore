@@ -3,9 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 .python-version
+.pytest_cache/
+.pytest_cache
 
 # Virtual environments
-echo "*" > .venv/.gitignore
 .venv/
 venv/
 ENV/
@@ -21,10 +22,14 @@ temp/
 *.tmp
 
 # Database
-.db
+*.db
 
 # Testing & Coverage
+.coverage
+.coverage.*
 coverage/
+htmlcov/
+coverage.xml
 
 # IDEs and Editors
 .vscode/
@@ -32,7 +37,8 @@ coverage/
 # OS generated files
 .DS_Store
 Thumbs.db
-.exe
+*.exe
 .build
+Frontend/dist/
 node_modules/
 local_data/

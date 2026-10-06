@@ -3,7 +3,7 @@ import types
 import unittest
 from unittest.mock import patch
 
-from backend.app.outputs.kafka_output import publish_documents
+from app.outputs.kafka_output import publish_documents
 
 
 class KafkaOutputTests(unittest.TestCase):

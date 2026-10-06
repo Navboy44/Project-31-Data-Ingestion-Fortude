@@ -1,14 +1,14 @@
 from datetime import datetime, timezone
-
+import ZoneInfo
 CRITICAL_KEYWORDS = ["outage", "data loss", "production down", "breach"]
 
-##because tickets with enterprise in them only have 4 SLA, if not 24 hrs SLA
+#because tickets with enterprise in them only have 4 SLA, if not 24 hrs SLA
 def get_sla_hours(customer_tier):
     if str(customer_tier).lower() == "enterprise":
         return 4
     return 24
 
-##checks critical words
+#checks critical words
 def has_critical_keyword(ticket):
     title = ticket.get("title") or ""
     description = ticket.get("description") or ""
@@ -28,7 +28,7 @@ def get_hours_since_created(created_at):
 
     try:
         created_time = datetime.strptime(created_at, "%Y-%m-%dT%H:%M:%S.%f%z")
-        current_time = datetime.now(timezone.utc)
+        current_time = datetime.now(ZoneInfo("Australia/Melbourne"))
         hours = (current_time - created_time).total_seconds() / 3600
         return round(hours, 2)
     except Exception:

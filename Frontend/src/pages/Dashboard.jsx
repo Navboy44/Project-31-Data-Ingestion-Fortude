@@ -23,9 +23,12 @@ export default function Dashboard({ history, config, goTo, openEntry }) {
 
   return (
     <section>
-      <PageHeading title="Dashboard" subtitle="An overview of your ingestion pipelines and configuration." />
+      <PageHeading
+        title="Dashboard"
+        subtitle="An overview of your ingestion pipelines and configuration."
+      />
 
-      <div className="mb-8">
+      <div className="mb-5">
         <button
           onClick={() => goTo("ingest")}
           className="font-semibold text-sm px-5 py-2.5 rounded-md border-none cursor-pointer text-white"
@@ -35,19 +38,41 @@ export default function Dashboard({ history, config, goTo, openEntry }) {
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <Card title="Past Ingestions" count={history.length} footer="View all →" onFooterClick={() => goTo("history")}>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+        <Card
+          title="Past Ingestions"
+          count={history.length}
+          footer="View all &rarr;"
+          onFooterClick={() => goTo("history")}
+        >
           {dashboardEntries.map((e) => (
-            <Row key={e.id} label={`Entry ${e.id}`} sub={e.connector} onEdit={() => openEntry(e.id)} />
+            <Row
+              key={e.id}
+              label={`Entry ${e.id}`}
+              sub={e.connector}
+              onEdit={() => openEntry(e.id)}
+            />
           ))}
         </Card>
 
-        <Card title="Configurations" count={totalConfig} footer="View all →" onFooterClick={() => goTo("configure")}>
+        <Card
+          title="Configurations"
+          count={totalConfig}
+          footer="View all &rarr;"
+          onFooterClick={() => goTo("configure")}
+        >
           {configPreview.length === 0 ? (
-            <div className="text-sm text-[color:var(--textMuted)] py-2">No configuration items yet.</div>
+            <div className="text-sm text-[color:var(--textMuted)] py-2">
+              No configuration items yet.
+            </div>
           ) : (
             configPreview.map(({ name, sub }) => (
-              <Row key={`${sub}-${name}`} label={name} sub={sub} onEdit={() => goTo("configure")} />
+              <Row
+                key={`${sub}-${name}`}
+                label={name}
+                sub={sub}
+                onEdit={() => goTo("configure")}
+              />
             ))
           )}
         </Card>

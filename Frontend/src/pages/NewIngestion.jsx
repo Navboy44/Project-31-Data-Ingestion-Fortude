@@ -38,7 +38,9 @@ export default function NewIngestion({ form, setForm, config, onStart }) {
   const [status, setStatus] = useState("form"); // "form" | "loading" | "error"
   const [errorMessage, setErrorMessage] = useState("");
   const { connector, mapper, rules, outputs } = form;
-  const allFilled = connector && mapper && rules && outputs;
+  const isInfor = connector.toLowerCase().includes("infor");
+  const validOrder = form.order_type && /^[A-Za-z0-9_-]{1,50}$/.test((form.order_number || "").trim());
+  const allFilled = connector && mapper && rules && outputs && (!isInfor || validOrder);
 
   // Build option arrays from live config data (just the name strings for the <select>).
   const connectorOptions = config.connectors.map((c) => c.name);
@@ -182,10 +184,36 @@ export default function NewIngestion({ form, setForm, config, onStart }) {
           {fields.map(([label, key, val, opts]) => (
             <React.Fragment key={key}>
               <label htmlFor={key} className="font-semibold text-sm self-center cursor-pointer" style={{ color: COLORS.text }}>{label}</label>
-              <Select id={key} value={val} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value }))} options={opts} placeholder="Select from the following options" />
+              <Select id={key} value={val} onChange={(e) => setForm((f) => ({ ...f, [key]: e.target.value,
+                ...(key === "connector" ? {
+                  outputs: e.target.value.toLowerCase().includes("infor") ? "Local JSON" : "",
+                } : {}),
+              }))} options={key === "outputs" && isInfor ? ["Local JSON"] : opts} placeholder="Select from the following options" />
             </React.Fragment>
           ))}
         </div>
+        {isInfor && (
+          <div className="grid gap-4 mt-6">
+            <label htmlFor="order_type" className="font-semibold text-sm">Order type</label>
+            <select id="order_type" value={form.order_type || ""}
+              onChange={(e) => setForm((f) => ({ ...f, order_type: e.target.value }))}
+              className="w-full px-3.5 py-2.5 rounded-md"
+              style={{ background: COLORS.card, color: COLORS.text, border: `1px solid ${COLORS.border}` }}>
+              <option value="">Select an order type</option>
+              <option value="customer">Customer order</option>
+              <option value="purchase">Purchase order</option>
+            </select>
+            <label htmlFor="order_number" className="font-semibold text-sm">Order number</label>
+            <input id="order_number" value={form.order_number || ""} maxLength={50}
+              onChange={(e) => setForm((f) => ({ ...f, order_number: e.target.value }))}
+              placeholder={form.order_type === "purchase" ? "Purchase order number (PUNO)" : "Customer order number (ORNO)"}
+              className="w-full px-3.5 py-2.5 rounded-md"
+              style={{ background: COLORS.card, color: COLORS.text, border: `1px solid ${COLORS.border}` }} />
+            <p className="text-sm" style={{ color: COLORS.textMuted }}>
+              Enter 1–50 letters, digits, underscores or hyphens. Order lines are saved as local JSON.
+            </p>
+          </div>
+        )}
         <div className="flex justify-end mt-8">
           <button
             disabled={!allFilled}
